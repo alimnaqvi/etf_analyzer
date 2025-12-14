@@ -16,7 +16,7 @@ def save_holdings_to_csv(term: str, output_csv: Path):
         if holdings_data.empty:
             print(f"Received empty holdings DataFrame")
             return None
-        holdings_data.to_csv(output_csv)
+        holdings_data.to_csv(output_csv, index=False)
         print(f"Successfully saved holdings data to {output_csv.name}")
         return output_csv
     except Exception as e:
