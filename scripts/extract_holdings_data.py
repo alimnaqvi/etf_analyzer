@@ -29,8 +29,9 @@ def init_mstar_extraction(row):
     fund_slug = row['Slug']
     isin = row['ISIN']
     ticker = row['Ticker']
-    alt_isins = row['Alternative ISINs'].split()
+    alt_isins = row['Alternative ISINs'].split(sep=',')
     tracked_index = row['Tracked index']
+    additional_terms = row['Additional terms (|-separated)'].split(sep='|')
 
     output_csv = MSTAR_DATA_DIR / fund_slug
     output_csv = output_csv.with_suffix(".csv")
@@ -38,7 +39,8 @@ def init_mstar_extraction(row):
         print(f"Skipping data pull for {fund_name} because its data has previously been saved. File: {output_csv.name}")
         return None
 
-    terms = [isin] + [ticker] + alt_isins + [tracked_index]
+    terms = [isin] + [ticker] + alt_isins + [tracked_index] + additional_terms
+    terms = [term for term in terms if term] # Remove empty strings
 
     for term in terms:
         print(f"Using term '{term}' to extract mstar data for {fund_name}")
