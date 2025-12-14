@@ -26,12 +26,13 @@ def save_holdings_to_csv(term: str, output_csv: Path):
 
 def init_mstar_extraction(row):
     fund_name = row['Fund name']
+    fund_slug = row['Slug']
     isin = row['ISIN']
     ticker = row['Ticker']
     alt_isins = row['Alternative ISINs'].split()
     tracked_index = row['Tracked index']
 
-    output_csv = MSTAR_DATA_DIR / util_funcs.slugify(fund_name)
+    output_csv = MSTAR_DATA_DIR / fund_slug
     output_csv = output_csv.with_suffix(".csv")
     if output_csv.exists():
         print(f"Skipping data pull for {fund_name} because its data has previously been saved. File: {output_csv.name}")

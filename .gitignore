@@ -4,3 +4,4 @@ venv/
 __pycache__/
 *.pyc
 value_data/
+processed_data/
