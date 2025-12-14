@@ -1,0 +1,6 @@
+downloads/
+pdf-text/
+venv/
+__pycache__/
+*.pyc
+value_data/
