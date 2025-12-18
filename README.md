@@ -11,3 +11,5 @@
 Calculated exposures are saved in `processed_data` directory.
 
 `dashboard.py` creates a dashboard for visualizing the exposures data.
+
+Data can be calculated and visualized for portfolio at multiple dates (or hypothetical portfolio) by creating multiple subdirectories in the `downloads` directory. The dashboard includes a dropdown to select the date and accordingly updates the graphs dynamically.

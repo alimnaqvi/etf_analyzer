@@ -1,18 +1,17 @@
 import pandas as pd
 import os
+import glob
 
 # Paths
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PORTFOLIO_FILE = os.path.join(BASE_DIR, 'downloads', '2025-09-30_MiFID-II.csv')
+DOWNLOADS_DIR = os.path.join(BASE_DIR, 'downloads')
 FUNDS_LIST_FILE = os.path.join(BASE_DIR, 'portfolio-data', 'funds_list.csv')
 CACHE_DIR = os.path.join(BASE_DIR, 'mstar-data-cache')
-OUTPUT_DIR = os.path.join(BASE_DIR, 'processed_data')
+PROCESSED_DIR = os.path.join(BASE_DIR, 'processed_data')
 
-os.makedirs(OUTPUT_DIR, exist_ok=True)
-
-def load_portfolio():
+def load_portfolio(filepath):
     """Loads the portfolio current market values."""
-    df = pd.read_csv(PORTFOLIO_FILE)
+    df = pd.read_csv(filepath)
     # Identify the value column (starts with a date)
     value_col = [c for c in df.columns if 'Market Value in Account' in c][0]
     # Clean up column names for easier access
@@ -24,8 +23,12 @@ def load_funds_metadata():
     df = pd.read_csv(FUNDS_LIST_FILE)
     return df[['ISIN', 'Slug']]
 
-def process_holdings():
-    portfolio = load_portfolio()
+def process_date(date_str, filepath):
+    print(f"Processing date: {date_str} from {filepath}")
+    output_dir = os.path.join(PROCESSED_DIR, date_str)
+    os.makedirs(output_dir, exist_ok=True)
+
+    portfolio = load_portfolio(filepath)
     metadata = load_funds_metadata()
     
     # Merge to get Slugs
@@ -46,7 +49,8 @@ def process_holdings():
         if os.path.exists(cache_file):
             # Load cached holdings
             holdings_df = pd.read_csv(cache_file)
-            holdings_df = holdings_df[holdings_df['holdingType'] == 'Equity'] # Ignore non-equity securities
+            if 'holdingType' in holdings_df.columns:
+                holdings_df = holdings_df[holdings_df['holdingType'] == 'Equity'] # Ignore non-equity securities
             
             # Ensure weighting is numeric
             holdings_df['weighting'] = pd.to_numeric(holdings_df['weighting'], errors='coerce').fillna(0)
@@ -94,25 +98,37 @@ def process_holdings():
     country_exp = full_df.groupby('country')['UserMarketValue'].sum().reset_index()
     country_exp['Weight'] = (country_exp['UserMarketValue'] / total_portfolio_value) * 100
     country_exp = country_exp.sort_values('Weight', ascending=False)
-    country_exp.to_csv(os.path.join(OUTPUT_DIR, 'exposure_country.csv'), index=False)
-    print("\nTop 5 Countries:")
-    print(country_exp.head(5))
+    country_exp.to_csv(os.path.join(output_dir, 'exposure_country.csv'), index=False)
 
     # 2. Sector Exposure
     sector_exp = full_df.groupby('sector')['UserMarketValue'].sum().reset_index()
     sector_exp['Weight'] = (sector_exp['UserMarketValue'] / total_portfolio_value) * 100
     sector_exp = sector_exp.sort_values('Weight', ascending=False)
-    sector_exp.to_csv(os.path.join(OUTPUT_DIR, 'exposure_sector.csv'), index=False)
-    print("\nTop 5 Sectors:")
-    print(sector_exp.head(5))
+    sector_exp.to_csv(os.path.join(output_dir, 'exposure_sector.csv'), index=False)
 
     # 3. Company Exposure
     company_exp = full_df.groupby('securityName')['UserMarketValue'].sum().reset_index()
     company_exp['Weight'] = (company_exp['UserMarketValue'] / total_portfolio_value) * 100
     company_exp = company_exp.sort_values('Weight', ascending=False)
-    company_exp.to_csv(os.path.join(OUTPUT_DIR, 'exposure_company.csv'), index=False)
-    print("\nTop 5 Companies:")
-    print(company_exp.head(5))
+    company_exp.to_csv(os.path.join(output_dir, 'exposure_company.csv'), index=False)
+    
+    print(f"Saved processed data to {output_dir}")
+
+def process_all_dates():
+    if not os.path.exists(DOWNLOADS_DIR):
+        print(f"Downloads directory not found at {DOWNLOADS_DIR}")
+        return
+
+    # Iterate over subdirectories in downloads
+    for item in os.listdir(DOWNLOADS_DIR):
+        date_dir = os.path.join(DOWNLOADS_DIR, item)
+        if os.path.isdir(date_dir):
+            # Find the csv file inside
+            csv_files = glob.glob(os.path.join(date_dir, "*.csv"))
+            if len(csv_files) == 1:
+                process_date(item, csv_files[0])
+            else:
+                print(f"Skipping {item}: Expected exactly 1 CSV file, found {len(csv_files)}")
 
 if __name__ == "__main__":
-    process_holdings()
+    process_all_dates()
