@@ -9,11 +9,6 @@ FUNDS_LIST_FILE = os.path.join(BASE_DIR, 'portfolio-data', 'funds_list.csv')
 CACHE_DIR = os.path.join(BASE_DIR, 'mstar-data-cache')
 PROCESSED_DIR = os.path.join(BASE_DIR, 'processed_data')
 
-# Mapping of period of mstar cache extraction to the corresponding portfolio values data (tags)
-MSTAR_DATE_TO_PF = {
-    "2025-12": ["2025-12-19", "2025-09-30"],
-}
-
 def load_portfolio(filepath):
     """Loads the portfolio current market values."""
     df = pd.read_csv(filepath)
@@ -126,8 +121,15 @@ def process_all_tags():
     if not os.path.exists(DOWNLOADS_DIR):
         print(f"Downloads directory not found at {DOWNLOADS_DIR}")
         return
+    
+    mstar_date_to_pf = {}
+    downloads_items = os.listdir(DOWNLOADS_DIR)
+    for cache_month in downloads_items:
+        if os.path.isdir(cache_month):
+            subdirs = os.listdir(cache_month)
+            mstar_date_to_pf[cache_month] = [subdir for subdir in subdirs if os.path.isdir(subdir)]
 
-    for cache_date, tags in MSTAR_DATE_TO_PF.items():
+    for cache_date, tags in mstar_date_to_pf.items():
         # Check if cache directory exists
         if not os.path.exists(os.path.join(CACHE_DIR, cache_date)):
             print(f"WARNING: Cache directory for {cache_date} not found. Skipping associated tags.")
