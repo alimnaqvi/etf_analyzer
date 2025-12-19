@@ -9,6 +9,11 @@ FUNDS_LIST_FILE = os.path.join(BASE_DIR, 'portfolio-data', 'funds_list.csv')
 CACHE_DIR = os.path.join(BASE_DIR, 'mstar-data-cache')
 PROCESSED_DIR = os.path.join(BASE_DIR, 'processed_data')
 
+# Mapping of period of mstar cache extraction to the corresponding portfolio values data (tags)
+MSTAR_DATE_TO_PF = {
+    "2025-12": ["2025-12-19", "2025-09-30"],
+}
+
 def load_portfolio(filepath):
     """Loads the portfolio current market values."""
     df = pd.read_csv(filepath)
@@ -23,10 +28,13 @@ def load_funds_metadata():
     df = pd.read_csv(FUNDS_LIST_FILE)
     return df[['ISIN', 'Slug']]
 
-def process_date(date_str, filepath):
-    print(f"Processing date: {date_str} from {filepath}")
-    output_dir = os.path.join(PROCESSED_DIR, date_str)
+def process_portfolio_tag(tag, cache_date, filepath):
+    print(f"Processing tag: {tag} (using cache: {cache_date}) from {filepath}")
+    output_dir = os.path.join(PROCESSED_DIR, tag)
     os.makedirs(output_dir, exist_ok=True)
+    
+    # Define specific cache directory for this run
+    specific_cache_dir = os.path.join(CACHE_DIR, cache_date)
 
     portfolio = load_portfolio(filepath)
     metadata = load_funds_metadata()
@@ -44,7 +52,7 @@ def process_date(date_str, filepath):
         slug = row['Slug']
         fund_value = row['MarketValue']
         
-        cache_file = os.path.join(CACHE_DIR, f"{slug}.csv")
+        cache_file = os.path.join(specific_cache_dir, f"{slug}.csv")
         
         if os.path.exists(cache_file):
             # Load cached holdings
@@ -74,7 +82,7 @@ def process_date(date_str, filepath):
             all_holdings.append(fund_holdings)
             
         else:
-            print(f"Warning: No cache found for {fund_name} ({slug}). Treating as 'Other'.")
+            print(f"Warning: No cache found for {fund_name} ({slug}) in {specific_cache_dir}. Treating as 'Other'.")
             # Create a dummy holding for the missing fund
             dummy_holding = pd.DataFrame([{
                 'securityName': 'Other / Data Unavailable',
@@ -114,21 +122,28 @@ def process_date(date_str, filepath):
     
     print(f"Saved processed data to {output_dir}")
 
-def process_all_dates():
+def process_all_tags():
     if not os.path.exists(DOWNLOADS_DIR):
         print(f"Downloads directory not found at {DOWNLOADS_DIR}")
         return
 
-    # Iterate over subdirectories in downloads
-    for item in os.listdir(DOWNLOADS_DIR):
-        date_dir = os.path.join(DOWNLOADS_DIR, item)
-        if os.path.isdir(date_dir):
-            # Find the csv file inside
-            csv_files = glob.glob(os.path.join(date_dir, "*.csv"))
-            if len(csv_files) == 1:
-                process_date(item, csv_files[0])
+    for cache_date, tags in MSTAR_DATE_TO_PF.items():
+        # Check if cache directory exists
+        if not os.path.exists(os.path.join(CACHE_DIR, cache_date)):
+            print(f"WARNING: Cache directory for {cache_date} not found. Skipping associated tags.")
+            continue
+
+        for tag in tags:
+            tag_dir = os.path.join(DOWNLOADS_DIR, tag)
+            if os.path.isdir(tag_dir):
+                # Find the csv file inside
+                csv_files = glob.glob(os.path.join(tag_dir, "*.csv"))
+                if len(csv_files) == 1:
+                    process_portfolio_tag(tag, cache_date, csv_files[0])
+                else:
+                    print(f"Skipping {tag}: Expected exactly 1 CSV file, found {len(csv_files)}")
             else:
-                print(f"Skipping {item}: Expected exactly 1 CSV file, found {len(csv_files)}")
+                print(f"Portfolio directory for tag '{tag}' not found in downloads.")
 
 if __name__ == "__main__":
-    process_all_dates()
+    process_all_tags()

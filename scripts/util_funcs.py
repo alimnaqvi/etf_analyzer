@@ -2,6 +2,7 @@ import re
 import unicodedata
 import time
 import random
+from datetime import datetime
 
 def slugify(value, allow_unicode=False):
     """
@@ -29,3 +30,13 @@ def sleep_if_quick(last_request_time, s_thresh=1, s_from=1, s_to=3):
         delay = random.uniform(s_from, s_to)
         print(f"Waiting for {delay:.2f} seconds before the next request...")
         time.sleep(delay)
+
+def check_months_ago(date_str):
+    target_date = datetime.strptime(date_str, "%Y-%m")
+    current_date = datetime.now()
+    
+    # Calculate difference in months accounting for year changes
+    months_ago = (current_date.year - target_date.year) * 12 + (current_date.month - target_date.month)
+    
+    if months_ago > 3:
+        print(f"WARNING: Holdings extraction date of {date_str} was {months_ago} months ago. Consider updating holdings cache.")

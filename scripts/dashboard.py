@@ -8,14 +8,14 @@ import os
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, 'processed_data')
 
-def get_available_dates():
+def get_available_tags():
     if not os.path.exists(DATA_DIR):
         return []
     # List directories in processed_data
     return sorted([d for d in os.listdir(DATA_DIR) if os.path.isdir(os.path.join(DATA_DIR, d))], reverse=True)
 
-def load_data(date_str, filename):
-    path = os.path.join(DATA_DIR, date_str, filename)
+def load_data(tag, filename):
+    path = os.path.join(DATA_DIR, tag, filename)
     if os.path.exists(path):
         return pd.read_csv(path)
     return pd.DataFrame()
@@ -24,8 +24,8 @@ def load_data(date_str, filename):
 app = dash.Dash(__name__)
 app.title = "ETF Portfolio Analyzer"
 
-available_dates = get_available_dates()
-default_date = available_dates[0] if available_dates else None
+available_tags = get_available_tags()
+default_tag = available_tags[0] if available_tags else None
 
 # --- Layout ---
 
@@ -33,11 +33,11 @@ app.layout = html.Div([
     html.H1("ETF Portfolio Dashboard", style={'textAlign': 'center'}),
     
     html.Div([
-        html.Label("Select Portfolio Date:"),
+        html.Label("Select Portfolio Tag:"),
         dcc.Dropdown(
-            id='date-dropdown',
-            options=[{'label': d, 'value': d} for d in available_dates],
-            value=default_date,
+            id='tag-dropdown',
+            options=[{'label': t, 'value': t} for t in available_tags],
+            value=default_tag,
             clearable=False
         )
     ], style={'width': '30%', 'margin': 'auto', 'paddingBottom': '20px'}),
@@ -61,15 +61,15 @@ app.layout = html.Div([
     [Output('graph-country', 'figure'),
      Output('graph-sector', 'figure'),
      Output('graph-company', 'figure')],
-    [Input('date-dropdown', 'value')]
+    [Input('tag-dropdown', 'value')]
 )
-def update_graphs(selected_date):
-    if not selected_date:
+def update_graphs(selected_tag):
+    if not selected_tag:
         return {}, {}, {}
 
-    df_country = load_data(selected_date, 'exposure_country.csv')
-    df_sector = load_data(selected_date, 'exposure_sector.csv')
-    df_company = load_data(selected_date, 'exposure_company.csv')
+    df_country = load_data(selected_tag, 'exposure_country.csv')
+    df_sector = load_data(selected_tag, 'exposure_sector.csv')
+    df_company = load_data(selected_tag, 'exposure_company.csv')
 
     # 1. Country Exposure (Top 20)
     if not df_country.empty:
@@ -77,7 +77,7 @@ def update_graphs(selected_date):
             df_country.head(20), 
             x='country', 
             y='Weight', 
-            title=f'Top 20 Country Exposures ({selected_date})',
+            title=f'Top 20 Country Exposures ({selected_tag})',
             labels={'country': 'Country', 'Weight': 'Portfolio Weight (%)'},
             text_auto='.2f'
         )
@@ -91,7 +91,7 @@ def update_graphs(selected_date):
             df_sector, 
             values='Weight', 
             names='sector', 
-            title=f'Sector Allocation ({selected_date})',
+            title=f'Sector Allocation ({selected_tag})',
             hole=0.4
         )
         fig_sector.update_traces(textposition='inside', textinfo='percent+label')
@@ -105,7 +105,7 @@ def update_graphs(selected_date):
             x='Weight', 
             y='securityName', 
             orientation='h',
-            title=f'Top 20 Company Exposures ({selected_date})',
+            title=f'Top 20 Company Exposures ({selected_tag})',
             labels={'securityName': 'Company', 'Weight': 'Portfolio Weight (%)'},
             text_auto='.2f'
         )
