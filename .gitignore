@@ -4,5 +4,7 @@ venv/
 __pycache__/
 *.pyc
 value_data/
+portfolio-data/
+!portfolio-data/funds_list.csv
 processed_data/
 notebooks/

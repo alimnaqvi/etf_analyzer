@@ -4,8 +4,8 @@ import glob
 
 # Paths
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DOWNLOADS_DIR = os.path.join(BASE_DIR, 'downloads')
-FUNDS_LIST_FILE = os.path.join(BASE_DIR, 'portfolio-data', 'funds_list.csv')
+PORTFOLIO_DIR = os.path.join(BASE_DIR, 'portfolio-data')
+FUNDS_LIST_FILE = os.path.join(PORTFOLIO_DIR, 'funds_list.csv')
 CACHE_DIR = os.path.join(BASE_DIR, 'mstar-data-cache')
 PROCESSED_DIR = os.path.join(BASE_DIR, 'processed_data')
 
@@ -118,16 +118,18 @@ def process_portfolio_tag(tag, cache_date, filepath):
     print(f"Saved processed data to {output_dir}")
 
 def process_all_tags():
-    if not os.path.exists(DOWNLOADS_DIR):
-        print(f"Downloads directory not found at {DOWNLOADS_DIR}")
+    if not os.path.exists(PORTFOLIO_DIR):
+        print(f"Portfolio data directory not found at {PORTFOLIO_DIR}")
         return
-    
+
+    # Mapping of period of mstar cache extraction to the corresponding portfolio values data (tags)    
     mstar_date_to_pf = {}
-    downloads_items = os.listdir(DOWNLOADS_DIR)
-    for cache_month in downloads_items:
-        if os.path.isdir(cache_month):
-            subdirs = os.listdir(cache_month)
-            mstar_date_to_pf[cache_month] = [subdir for subdir in subdirs if os.path.isdir(subdir)]
+    portfolio_dir_items = os.listdir(PORTFOLIO_DIR)
+    for cache_month in portfolio_dir_items:
+        cache_month_path = os.path.join(PORTFOLIO_DIR, cache_month)
+        if os.path.isdir(cache_month_path):
+            subdirs = os.listdir(cache_month_path)
+            mstar_date_to_pf[cache_month] = [subdir for subdir in subdirs if os.path.isdir(os.path.join(cache_month_path, subdir))]
 
     for cache_date, tags in mstar_date_to_pf.items():
         # Check if cache directory exists
@@ -136,7 +138,7 @@ def process_all_tags():
             continue
 
         for tag in tags:
-            tag_dir = os.path.join(DOWNLOADS_DIR, tag)
+            tag_dir = os.path.join(PORTFOLIO_DIR, cache_date, tag)
             if os.path.isdir(tag_dir):
                 # Find the csv file inside
                 csv_files = glob.glob(os.path.join(tag_dir, "*.csv"))
@@ -145,7 +147,7 @@ def process_all_tags():
                 else:
                     print(f"Skipping {tag}: Expected exactly 1 CSV file, found {len(csv_files)}")
             else:
-                print(f"Portfolio directory for tag '{tag}' not found in downloads.")
+                print(f"Portfolio directory for tag '{tag}' not found in portfolio-data.")
 
 if __name__ == "__main__":
     process_all_tags()
