@@ -111,6 +111,135 @@ Opens an interactive Dash app at `http://127.0.0.1:8050/` featuring:
 
 All charts update dynamically when a different snapshot is selected.
 
+## Appendix: Extracting Transactions from Scalable Capital
+
+Scalable Capital does not offer a CSV export for transactions. The following browser console script scrapes the transactions page and downloads them as a CSV, which can then be used to produce the portfolio snapshot files consumed by this project.
+
+**Steps:**
+
+1. Open your [Scalable Capital](https://scalable.capital/) transactions page.
+2. Scroll down until all the transactions you want to analyze are loaded.
+3. Open Developer Tools (`F12` or `Ctrl+Shift+I` / `Cmd+Option+I`) and go to the **Console** tab.
+4. Paste the script below and press **Enter**. A CSV file will be downloaded automatically.
+
+<details>
+<summary>Browser console script (click to expand)</summary>
+
+```js
+(function extractScalableTransactions() {
+    const transactions = [];
+    const items = document.querySelectorAll('li[class*="-listItem"]');
+
+    // HELPER: Find specific elements but strictly ignore "Container" wrappers
+    const findNode = (parent, classNamePart) => {
+        return Array.from(parent.querySelectorAll('*')).find(el => 
+            el.className && 
+            typeof el.className === 'string' && 
+            el.className.includes(classNamePart) && 
+            !el.className.includes('Container')
+        );
+    };
+
+    items.forEach(item => {
+        const button = item.querySelector('button');
+        if (!button) return;
+
+        // 1. Date and Status
+        const ariaLabel = button.getAttribute('aria-labelledby') || '';
+        const dateString = ariaLabel.split(': ')[0];
+        const testId = button.getAttribute('data-testid') || '';
+        const status = testId.includes('PENDING') ? 'Pending' : 'Settled';
+
+        // 2. Type (Buy, Savings Plan, Deposit)
+        const typeNode = findNode(item, '-type');
+        const type = typeNode ? typeNode.innerText.trim() : 'Unknown';
+
+        // 3. Name and ISIN
+        let name = '';
+        let isin = '';
+        const linkNode = item.querySelector('a[href*="isin="]');
+        
+        if (linkNode) {
+            name = linkNode.innerText.trim();
+            const urlParams = new URLSearchParams(linkNode.getAttribute('href').split('?')[1]);
+            isin = urlParams.get('isin') || '';
+        } else {
+            const descNode = findNode(item, '-description');
+            if (descNode) name = descNode.innerText.trim();
+        }
+
+        // 4. Shares
+        let shares = '';
+        const sharesNode = findNode(item, '-numberOfShares');
+        if (sharesNode) {
+            const sharesText = sharesNode.innerText.replace(/[^\d.]/g, '');
+            shares = parseFloat(sharesText) || 0;
+        }
+
+        // 5. Amount
+        let amount = '';
+        const statusNode = findNode(item, '-currentStatus');
+        if (statusNode) {
+            const statusText = statusNode.innerText.trim();
+            if (statusText !== 'Pending') {
+                const cleanAmount = statusText.replace(/[^\d.-]/g, '');
+                amount = parseFloat(cleanAmount) || 0;
+            }
+        }
+
+        transactions.push({
+            Date: dateString,
+            Status: status,
+            Type: type,
+            Name: name,
+            ISIN: isin,
+            Shares: shares,
+            Amount: amount
+        });
+    });
+
+    if (transactions.length === 0) {
+        console.warn("No transactions found.");
+        return;
+    }
+
+    // --- Convert to CSV ---
+    const headers = ["Date", "Status", "Type", "Name", "ISIN", "Shares", "Amount"];
+    const csvRows = [headers.join(',')];
+
+    transactions.forEach(t => {
+        const row = [
+            t.Date,
+            t.Status,
+            t.Type,
+            `"${t.Name}"`,
+            t.ISIN,
+            t.Shares,
+            t.Amount
+        ];
+        csvRows.push(row.join(','));
+    });
+
+    const csvString = csvRows.join('\n');
+    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute("href", url);
+    link.setAttribute("download", `scalable_transactions_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    console.log(`Successfully extracted ${transactions.length} transactions!`);
+})();
+```
+
+</details>
+
+The downloaded CSV contains columns: `Date`, `Status`, `Type`, `Name`, `ISIN`, `Shares`, `Amount`.
+
 ## Tech Stack
 
 | Component | Technology |
