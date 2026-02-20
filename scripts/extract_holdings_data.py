@@ -4,7 +4,7 @@ import csv
 import util_funcs
 import time
 
-EXTRACTION_PERIOD = "2025-12" # To be updated for future mstar data extraction
+EXTRACTION_PERIOD = "2026-02" # To be updated for future mstar data extraction
 SCRIPT_DIR = Path(__file__).parent.resolve()
 ROOT_DIR = SCRIPT_DIR.parent
 MSTAR_DATA_DIR = ROOT_DIR / "mstar-data-cache" / EXTRACTION_PERIOD
@@ -34,6 +34,7 @@ def init_mstar_extraction(row):
     tracked_index = row['Tracked index']
     additional_terms = row['Additional terms (|-separated)'].split(sep='|')
 
+    MSTAR_DATA_DIR.mkdir(parents=True, exist_ok=True)
     output_csv = MSTAR_DATA_DIR / fund_slug
     output_csv = output_csv.with_suffix(".csv")
     if output_csv.exists():
