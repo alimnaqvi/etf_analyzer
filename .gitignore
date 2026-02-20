@@ -9,3 +9,4 @@ portfolio-data/
 processed_data/
 notebooks/
 rough/
+.env
