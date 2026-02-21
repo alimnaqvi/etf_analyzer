@@ -1,18 +1,35 @@
 # ETF Portfolio Analyzer
 
-A Python tool that provides transparency into the underlying holdings of an ETF-based investment portfolio. Since ETFs are composed of hundreds or thousands of individual securities, it can be difficult to understand real exposure at the country, sector, or company level, especially across multiple funds. This project solves that by fetching holdings data from Morningstar, combining it with actual portfolio market values, and producing an interactive dashboard that breaks down aggregate exposures.
+A comprehensive Python-based analytics pipeline and interactive dashboard designed to provide deep transparency into ETF-based investment portfolios. 
+
+While ETFs offer great diversification, they often obscure the underlying realities of an investment. It can be difficult to understand true exposure at the country, sector, or company level across multiple funds, or to accurately measure money-weighted returns (XIRR) when dollar-cost averaging over time. 
+
+This project solves these challenges by:
+1. **Fetching and caching** underlying holdings data from Morningstar.
+2. **Parsing raw broker transactions** to reconstruct historical prices, cash flows, and invested capital.
+3. **Computing** aggregate weighted exposures and precise performance metrics (Total Return, XIRR, Yearly Returns).
+4. **Visualizing** the insights through a rich, interactive Streamlit dashboard.
 
 ## Dashboard Demo
 
 https://github.com/user-attachments/assets/c2c0e1ac-32d0-4f62-8448-a5853c9ff741
 
+## Key Features
+
+- **Deep Exposure Analysis**: See exactly what percentage of your portfolio is allocated to specific countries, sectors, and individual companies (e.g., "How much Apple do I actually own across all my ETFs?").
+- **Transaction-Aware Performance**: Calculates true Money-Weighted Return (XIRR) and Total Return by analyzing every historical buy, sell, and savings plan execution.
+- **Historical Price Reconstruction**: Derives historical ETF unit prices directly from your transaction history, eliminating the need for external price APIs.
+- **Yearly Return Heatmaps**: Visualizes fund-by-fund performance across different calendar years.
+- **Interactive Streamlit UI**: A multi-tab dashboard (Exposure, Returns, Investment) with dynamic filtering, sorting, and Vega-Lite charts.
+
 ## How It Works
 
-The project follows a three-stage pipeline:
+The project follows a four-stage pipeline:
 
 1. **Data Extraction** — Pull the latest holdings data for each ETF from Morningstar via the [`mstarpy`](https://github.com/Mael-J/mstarpy) library and cache it locally.
 2. **Exposure Calculation** — Combine cached holdings with actual portfolio market values to compute weighted exposure by country, sector, and individual company.
-3. **Visualization** — Serve an interactive Streamlit dashboard to explore exposures, returns, and investment outcomes across snapshots.
+3. **Transaction Analysis** — Parse raw broker transaction exports to compute net invested capital, current value, XIRR, and yearly returns.
+4. **Visualization** — Serve an interactive Streamlit dashboard to explore exposures, returns, and investment outcomes across snapshots.
 
 ## Project Structure
 
@@ -29,19 +46,36 @@ etf-analyzer/
 │   └── <YYYY-MM>/                 # Grouped by mstar cache extraction period
 │       └── <YYYY-MM-DD>/          # Portfolio snapshot ("tag") date
 │           └── <date>_portfolio.csv
+├── transactions-data/             # User-provided broker transaction exports (e.g., Scalable Capital)
 ├── mstar-data-cache/
 │   └── <YYYY-MM>/                 # Cached holdings CSVs from Morningstar
 ├── processed_data/
-│   └── <YYYY-MM-DD>/              # Computed exposure CSVs per snapshot
-│       ├── exposure_country.csv
-│       ├── exposure_sector.csv
-│       └── exposure_company.csv
+│   ├── <YYYY-MM-DD>/              # Computed exposure CSVs per snapshot
+│   │   ├── exposure_country.csv
+│   │   ├── exposure_sector.csv
+│   │   └── exposure_company.csv
+│   └── transactions/              # Computed performance and investment CSVs
+│       └── <YYYY-MM-DD>/
+│           ├── fund_price_history.csv
+│           ├── fund_yearly_returns.csv
+│           ├── portfolio_yearly_returns.csv
+│           ├── fund_investment_summary.csv
+│           └── portfolio_investment_summary.csv
 ├── notebooks/
 │   └── quick_query.ipynb          # Ad-hoc data exploration notebook
 ├── img/                           # Dashboard screenshots
 ├── requirements.txt
 └── README.md
 ```
+
+## Technical Stack
+
+- **Python 3.10+**
+- **Pandas**: Core data manipulation, time-series analysis, and financial calculations.
+- **Streamlit**: Interactive web application framework for the frontend dashboard.
+- **Vega-Lite**: Declarative visualization grammar used within Streamlit for complex, interactive charts (heatmaps, donuts, bar charts).
+- **mstarpy**: Unofficial Morningstar API wrapper for fetching ETF holdings.
+- **Financial Math**: Custom implementation of the Extended Internal Rate of Return (XIRR) algorithm using `scipy.optimize.newton` to calculate money-weighted returns based on irregular cash flows.
 
 ## Setup
 
@@ -91,18 +125,18 @@ For each portfolio snapshot, the script:
 - Weights each underlying security by the fund's share of total portfolio value
 - Aggregates by country, sector, and company and writes sorted CSVs to `processed_data/<YYYY-MM-DD>/`
 
-### 4. Analyze returns and investment outcomes from transactions
+### 4. Analyze returns and investment outcomes
 
 ```bash
 python scripts/transactions_analysis.py
 ```
 
 The script automatically picks the latest `transactions-data/scalable_transactions_YYYY-MM-DD.csv` file and writes reports to `processed_data/transactions/<YYYY-MM-DD>/`:
-- `fund_price_history.csv`: transaction-derived unit prices per fund over time
-- `fund_yearly_returns.csv`: yearly fund returns based on start/end transaction-implied prices (performance-only view)
-- `portfolio_yearly_returns.csv`: yearly portfolio return using opening-year weights (performance-only view)
-- `fund_investment_summary.csv`: net invested, current value, total return, and money-weighted return (XIRR) per fund
-- `portfolio_investment_summary.csv`: portfolio-level net invested, current value, total return, and money-weighted return (XIRR)
+- `fund_price_history.csv`: Transaction-derived unit prices per fund over time.
+- `fund_yearly_returns.csv`: Yearly fund returns based on start/end transaction-implied prices.
+- `portfolio_yearly_returns.csv`: Yearly portfolio return using opening-year weights.
+- `fund_investment_summary.csv`: Net invested, current value, total return, and money-weighted return (XIRR) per fund.
+- `portfolio_investment_summary.csv`: Portfolio-level net invested, current value, total return, and money-weighted return (XIRR).
 
 You can also pass a specific file:
 
@@ -116,14 +150,19 @@ python scripts/transactions_analysis.py --transactions-file transactions-data/sc
 streamlit run scripts/dashboard.py
 ```
 
-Opens an interactive Streamlit app (typically at `http://localhost:8501/`) featuring:
-- **Snapshot selectors** for exposure and transactions datasets
-- **Bar chart** of top 20 country exposures
-- **Donut chart** of sector allocation
-- **Horizontal bar chart** of top 20 company exposures
-- **Portfolio yearly returns** and **fund returns heatmap**
-- **Investment KPIs** (net invested, current value, total return, money-weighted return)
-- **Fund-level investment table** and **transaction-implied price history chart**
+Opens an interactive Streamlit app (typically at `http://localhost:8501/`) featuring three main tabs:
+
+1. **Exposure Tab**: 
+   - **Bar chart** of top 20 country exposures.
+   - **Donut chart** of sector allocation.
+   - **Horizontal bar chart** of top 20 company exposures.
+2. **Returns Tab**: 
+   - **Portfolio yearly returns** bar chart.
+   - **Fund returns heatmap** showing performance across different calendar years.
+3. **Investment Tab**: 
+   - **Investment KPIs** (net invested, current value, total return, money-weighted return).
+   - **Fund-level investment table** detailing XIRR and total returns per asset.
+   - **Transaction-implied price history chart** tracking unit prices over time.
 
 All visuals update dynamically when different snapshots, years, and funds are selected.
 
