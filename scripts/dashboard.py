@@ -69,15 +69,31 @@ def fund_name_map() -> dict[str, str]:
     return dict(zip(funds["ISIN"], funds["Fund name"]))
 
 
-def show_horizontal_bar(data: pd.DataFrame, y_col: str, x_col: str, title: str, height: int = 350) -> None:
+def show_horizontal_bar(
+    data: pd.DataFrame,
+    y_col: str,
+    x_col: str,
+    title: str,
+    height: int = 350,
+    y_sort: str = "-x",
+) -> None:
     if data.empty:
         st.info(f"No data available for: {title}")
         return
     chart = {
-        "mark": {"type": "bar", "tooltip": True},
+        "mark": {"type": "bar"},
         "encoding": {
-            "x": {"field": x_col, "type": "quantitative", "title": x_col},
-            "y": {"field": y_col, "type": "nominal", "sort": "-x", "title": y_col},
+            "x": {
+                "field": x_col,
+                "type": "quantitative",
+                "title": x_col,
+                "axis": {"format": ".2f"},
+            },
+            "y": {"field": y_col, "type": "nominal", "sort": y_sort, "title": y_col},
+            "tooltip": [
+                {"field": y_col, "type": "nominal", "title": y_col},
+                {"field": x_col, "type": "quantitative", "title": x_col, "format": ".2f"},
+            ],
         },
         "height": height,
     }
@@ -90,10 +106,14 @@ def show_sector_donut(data: pd.DataFrame) -> None:
         st.info("No sector data available")
         return
     chart = {
-        "mark": {"type": "arc", "innerRadius": 60, "tooltip": True},
+        "mark": {"type": "arc", "innerRadius": 60},
         "encoding": {
             "theta": {"field": "Weight", "type": "quantitative"},
             "color": {"field": "sector", "type": "nominal"},
+            "tooltip": [
+                {"field": "sector", "type": "nominal", "title": "Sector"},
+                {"field": "Weight", "type": "quantitative", "title": "Weight", "format": ".2f"},
+            ],
         },
     }
     st.subheader("Sector Allocation")
@@ -171,11 +191,12 @@ def main() -> None:
 
             if not portfolio_yearly.empty:
                 show_horizontal_bar(
-                    portfolio_yearly.sort_values("Year", ascending=False),
+                    portfolio_yearly.sort_values("Year", ascending=True),
                     y_col="Year",
                     x_col="PortfolioYearlyReturnPct",
                     title="Portfolio Yearly Returns (%)",
                     height=220,
+                    y_sort="ascending",
                 )
 
             if not fund_yearly.empty:
