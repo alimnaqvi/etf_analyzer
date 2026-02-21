@@ -2,16 +2,8 @@
 
 A Python tool that provides transparency into the underlying holdings of an ETF-based investment portfolio. Since ETFs are composed of hundreds or thousands of individual securities, it can be difficult to understand real exposure at the country, sector, or company level, especially across multiple funds. This project solves that by fetching holdings data from Morningstar, combining it with actual portfolio market values, and producing an interactive dashboard that breaks down aggregate exposures.
 
-## Dashboard Screenshots
+## Dashboard Demo
 
-### Country Exposure
-![Top 20 Country Exposures](img/country-exposures.png)
-
-### Sector Allocation
-![Sector Allocation](img/sector-exposures.png)
-
-### Top Company Exposures
-![Top 20 Company Exposures](img/company-exposures.png)
 
 ## How It Works
 
