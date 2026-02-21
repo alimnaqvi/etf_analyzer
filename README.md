@@ -19,7 +19,7 @@ The project follows a three-stage pipeline:
 
 1. **Data Extraction** — Pull the latest holdings data for each ETF from Morningstar via the [`mstarpy`](https://github.com/Mael-J/mstarpy) library and cache it locally.
 2. **Exposure Calculation** — Combine cached holdings with actual portfolio market values to compute weighted exposure by country, sector, and individual company.
-3. **Visualization** — Serve an interactive Dash dashboard that displays the computed exposures with a dropdown to compare across different portfolio snapshots over time.
+3. **Visualization** — Serve an interactive Streamlit dashboard to explore exposures, returns, and investment outcomes across snapshots.
 
 ## Project Structure
 
@@ -29,7 +29,7 @@ etf-analyzer/
 │   ├── extract_holdings_data.py   # Stage 1: Fetch & cache holdings from Morningstar
 │   ├── holdings_analysis.py       # Stage 2: Calculate weighted exposures
 │   ├── transactions_analysis.py   # Stage 3: Analyze returns and invested capital from transactions
-│   ├── dashboard.py               # Stage 4: Interactive Plotly Dash dashboard
+│   ├── dashboard.py               # Stage 4: Interactive Streamlit dashboard
 │   └── util_funcs.py              # Shared helpers (slugify, rate-limiting, etc.)
 ├── portfolio-data/
 │   ├── funds_list.csv             # Master list of ETFs with ISINs, tickers, slugs
@@ -58,7 +58,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-Key dependencies: `mstarpy`, `pandas`, `dash`, `plotly`
+Key dependencies: `mstarpy`, `pandas`, `streamlit`
 
 ## Usage
 
@@ -120,16 +120,19 @@ python scripts/transactions_analysis.py --transactions-file transactions-data/sc
 ### 5. Launch the dashboard
 
 ```bash
-python scripts/dashboard.py
+streamlit run scripts/dashboard.py
 ```
 
-Opens an interactive Dash app at `http://127.0.0.1:8050/` featuring:
-- **Dropdown selector** to switch between portfolio snapshot dates
+Opens an interactive Streamlit app (typically at `http://localhost:8501/`) featuring:
+- **Snapshot selectors** for exposure and transactions datasets
 - **Bar chart** of top 20 country exposures
 - **Donut chart** of sector allocation
 - **Horizontal bar chart** of top 20 company exposures
+- **Portfolio yearly returns** and **fund returns heatmap**
+- **Investment KPIs** (net invested, current value, total return, money-weighted return)
+- **Fund-level investment table** and **transaction-implied price history chart**
 
-All charts update dynamically when a different snapshot is selected.
+All visuals update dynamically when different snapshots, years, and funds are selected.
 
 ## Appendix: Extracting Transactions from Scalable Capital
 
@@ -266,5 +269,5 @@ The downloaded CSV contains columns: `Date`, `Status`, `Type`, `Name`, `ISIN`, `
 |---|---|
 | Data extraction | `mstarpy` (Morningstar API wrapper) |
 | Data processing | `pandas` |
-| Dashboard | `Dash` + `Plotly` |
+| Dashboard | `Streamlit` |
 | Ad-hoc analysis | Jupyter Notebook |
