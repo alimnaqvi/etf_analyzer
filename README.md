@@ -4,6 +4,7 @@ A Python tool that provides transparency into the underlying holdings of an ETF-
 
 ## Dashboard Demo
 
+https://github.com/user-attachments/assets/c2c0e1ac-32d0-4f62-8448-a5853c9ff741
 
 ## How It Works
 
