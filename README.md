@@ -28,7 +28,8 @@ etf-analyzer/
 ├── scripts/
 │   ├── extract_holdings_data.py   # Stage 1: Fetch & cache holdings from Morningstar
 │   ├── holdings_analysis.py       # Stage 2: Calculate weighted exposures
-│   ├── dashboard.py               # Stage 3: Interactive Plotly Dash dashboard
+│   ├── transactions_analysis.py   # Stage 3: Analyze returns and invested capital from transactions
+│   ├── dashboard.py               # Stage 4: Interactive Plotly Dash dashboard
 │   └── util_funcs.py              # Shared helpers (slugify, rate-limiting, etc.)
 ├── portfolio-data/
 │   ├── funds_list.csv             # Master list of ETFs with ISINs, tickers, slugs
@@ -97,7 +98,26 @@ For each portfolio snapshot, the script:
 - Weights each underlying security by the fund's share of total portfolio value
 - Aggregates by country, sector, and company and writes sorted CSVs to `processed_data/<YYYY-MM-DD>/`
 
-### 4. Launch the dashboard
+### 4. Analyze returns and investment outcomes from transactions
+
+```bash
+python scripts/transactions_analysis.py
+```
+
+The script automatically picks the latest `transactions-data/scalable_transactions_YYYY-MM-DD.csv` file and writes reports to `processed_data/transactions/<YYYY-MM-DD>/`:
+- `fund_price_history.csv`: transaction-derived unit prices per fund over time
+- `fund_yearly_returns.csv`: yearly fund returns based on start/end transaction-implied prices (performance-only view)
+- `portfolio_yearly_returns.csv`: yearly portfolio return using opening-year weights (performance-only view)
+- `fund_investment_summary.csv`: net invested, current value, total return, and money-weighted return (XIRR) per fund
+- `portfolio_investment_summary.csv`: portfolio-level net invested, current value, total return, and money-weighted return (XIRR)
+
+You can also pass a specific file:
+
+```bash
+python scripts/transactions_analysis.py --transactions-file transactions-data/scalable_transactions_2026-02-20.csv
+```
+
+### 5. Launch the dashboard
 
 ```bash
 python scripts/dashboard.py
@@ -113,7 +133,7 @@ All charts update dynamically when a different snapshot is selected.
 
 ## Appendix: Extracting Transactions from Scalable Capital
 
-Scalable Capital does not offer a CSV export for transactions. The following browser console script scrapes the transactions page and downloads them as a CSV, which can then be used to produce the portfolio snapshot files consumed by this project.
+Scalable Capital's CSV export for all transactions is a paid feature. The following browser console script scrapes the transactions page and downloads them as a CSV, which can then be used to produce the portfolio snapshot files consumed by this project.
 
 **Steps:**
 
